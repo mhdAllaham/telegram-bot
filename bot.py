@@ -4,7 +4,7 @@ from telebot.types import Message
 from pdf2docx import Converter
 import subprocess
 
-API_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
+API_TOKEN = os.environ.get('BOT_TOKEN', '8418425243:AAFHjUwBTWeufgiBiXBl3Ukp384jI5LCHMc')
 bot = telebot.TeleBot(API_TOKEN)
 
 MAX_SIZE = 10 * 1024 * 1024  # 10 MB
