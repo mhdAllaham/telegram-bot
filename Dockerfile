@@ -13,5 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Run the bot
-CMD ["python", "bot.py"]
+# Expose port (default for mostly Cloud Services)
+EXPOSE 8000
+
+# Run the bot using Gunicorn Webhook server
+CMD ["gunicorn", "bot:app", "-b", "0.0.0.0:8000"]
