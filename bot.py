@@ -5,6 +5,7 @@ from pdf2docx import Converter
 import subprocess
 from flask import Flask, request
 import json
+import random
 
 API_TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
 bot = telebot.TeleBot(API_TOKEN)
@@ -41,6 +42,16 @@ def decrease_conversion(user_id):
         save_db(db)
         return True
     return False
+
+def add_bonus(user_id):
+    db = load_db()
+    user_id_str = str(user_id)
+    if user_id_str not in db:
+        get_user(user_id) # ensure exists
+        
+    db[user_id_str]['conversions_left'] += 1
+    save_db(db)
+    return True
 
 def add_referral(new_user_id, referrer_id):
     db = load_db()
@@ -108,7 +119,29 @@ def handle_docs(message: Message):
     if user_data['conversions_left'] <= 0:
         bot_info = bot.get_me()
         invite_link = f"https://t.me/{bot_info.username}?start={user_id}"
-        bot.reply_to(message, f"❌ رصيدك من التحويلات المجانية قد نفد.\n\nللحصول على المزيد من التحويلات، شارك رابط الدعوة الخاص بك مع أصدقائك:\n{invite_link}")
+        
+        # Replace these URLs with your actual Adstera direct links
+        ADSTERA_LINKS = [
+            "https://www.effectivegatecpm.com/n0xhta54?key=f1028b9a8e16ebe4f60c0f271f146e0e",
+            "https://www.effectivegatecpm.com/aw6mxjqc?key=03cdad938f2d45f57b6197d20f789843"
+        ]
+        
+        random_ad_link = random.choice(ADSTERA_LINKS)
+        
+        no_balance_text = (
+            f"❌ **رصيدك من التحويلات المجانية قد نفد.**\n\n"
+            f"للحصول على محاولة تحويل إضافية مجاناً لديك خيارين:\n\n"
+            f"1️⃣ **الخيار الأول (مشاركة البوت):**\n"
+            f"أرسل هذا الرابط لأصدقائك، وكل شخص يدخل תקصل على تحويل مجاني:\n`{invite_link}`\n\n"
+            f"2️⃣ **الخيار الثاني (مشاهدة إعلان سريع):**\n"
+            f"اضغط على الزر بالأسفل لزيارة صفحة الإعلان لمدة 10 ثوانٍ فقط، ثم اضغط على زر (تأكيد المشاهدة) لتحصل على محاولة مجانية فوراً!"
+        )
+        markup_ad = InlineKeyboardMarkup(row_width=1)
+        btn_ad = InlineKeyboardButton("🔗 الضغط هنا لمشاهدة الإعلان", url=random_ad_link)
+        btn_confirm = InlineKeyboardButton("✅ تأكيد مشاهدة الإعلان", callback_data="claimAdReward")
+        markup_ad.add(btn_ad, btn_confirm)
+        
+        bot.reply_to(message, no_balance_text, reply_markup=markup_ad, parse_mode="Markdown")
         return
 
     markup = InlineKeyboardMarkup()
@@ -121,8 +154,18 @@ def handle_docs(message: Message):
         
     bot.reply_to(message, f"تم استلام الملف: {file_name}\nالرجاء الضغط على الزر أدناه لبدء التحويل:", reply_markup=markup)
 
-@bot.callback_query_handler(func=lambda call: call.data in ['convertDOCX', 'convertPDF'])
+@bot.callback_query_handler(func=lambda call: call.data in ['convertDOCX', 'convertPDF', 'claimAdReward'])
 def callback_conversion(call):
+    user_id = call.from_user.id
+    
+    if call.data == 'claimAdReward':
+        add_bonus(user_id)
+        bot.answer_callback_query(call.id, "🎉 تم التحقق بنجاح! لقد حصلت على تحويل مجاني إضافي.", show_alert=True)
+        bot.edit_message_text("✅ لقد قمت بمشاهدة الإعلان وحصلت على رصيدك بفضل الله. يمكنك إرسال ملفك الآن للتحويل.",
+                              chat_id=call.message.chat.id,
+                              message_id=call.message.message_id)
+        return
+
     bot.answer_callback_query(call.id)
     
     original_msg = call.message.reply_to_message
@@ -132,7 +175,6 @@ def callback_conversion(call):
                               message_id=call.message.message_id)
         return
         
-    user_id = call.from_user.id
     if not decrease_conversion(user_id):
         bot.edit_message_text("❌ رصيدك مجاني قد نفد. أرسل /start لمعرفة كيفية الحصول على المزيد.", 
                               chat_id=call.message.chat.id, 
