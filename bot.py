@@ -68,6 +68,11 @@ def handle_docs(message: Message):
                     bot.send_document(message.chat.id, doc_file)
                 
                 bot.delete_message(chat_id=message.chat.id, message_id=processing_msg.message_id)
+            except Exception as conv_err:
+                print(f"PDF2DOCX Conversion Error: {conv_err}")
+                bot.edit_message_text(f"حدث خطأ داخلي أثناء تحويل هذا الـ PDF المعقد. ❌", 
+                                      chat_id=message.chat.id, 
+                                      message_id=processing_msg.message_id)
             finally:
                 if os.path.exists(pdf_path): os.remove(pdf_path)
                 if os.path.exists(docx_path): os.remove(docx_path)
